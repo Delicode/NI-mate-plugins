@@ -1,0 +1,5 @@
+global proc NImateReceiver()
+{
+	python("import NImateReceiverForMaya");
+	python("NImateReceiverForMaya.create()");
+}

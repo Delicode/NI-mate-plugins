@@ -1,0 +1,31 @@
+Instructions for the NI mate Unity plugin components:
+
+Note: Use of these plugin components requires an installation of Delicode NI mate (www.ni-mate.com) and a supported sensor device.
+
+The NI mate Unity plugin components allow you to receive Full Skeleton joint location and rotation data from NI mate and also the live camera feed that's shown in the NI mate "Live View" tab. The "Bunny" example scene shows both the joint rotation and live feed functionalities.
+
+NImateReceiver.cs
+	This is the main component for receiving motion data from NI mate. You should add this to only one object in the scene, for example the main camera. The easiest way to animate a character is to select the "Orientation" OSC mode from NI mate and only use the joint rotations to animate the character. If joint locations are used the character's proportions should match the player's proportions closely.
+
+	The following options are shown in the inspector for this component:
+		Port - This should match the "Full Skeleton" OSC port in NI mate.
+
+		Add to original rotations - The rotations from NI mate have their zero positions in a "T-pose", where the user is facing the camera with both hands horizontally to the sides with palms facing downwards. The Unity character's pose should always be close to this for the motions to be applied correctly. However depending on the character rigging the bone rotations might not be zero in this pose. The "add to original rotations" option applies the rotations from NI mate on top of the bone's initial rotations.
+
+		Use root rotations - The rotations from NI mate are always in world coordinates. With this option the character's root transform's rotation is applied on top of the rotations that are received from NI mate. This way you can rotate the character in Unity and still have natural motions. Without this option the Unity character will always be oriented in global space to match the real world.
+
+		Start NI mate - This option will start NI mate with the specified NI mate profile file ".nimate" when the Unity game is started. In the design phase you should include the profile file in the assets folder and after building you should copy the profile file to the "game_name_Data" folder. (This feature requires a full NI mate licence)
+
+		Quit NI mate - This option will quit NI mate when the Unity game ends. The quit port should match the Receive OSC port in NI mate preferences. (This feature requires a full NI mate licence)
+
+NImateFeed.cs
+	This component allows you to receive the live camera feed that's selected in NI mate's "Live View" tab. If this component is added to a camera object the feed is drawn automatically as a screen overlay. If this component is added to any other object (a plane for example) the object material's main texture is replaced with the feed data.
+
+	This component can be added to multiple objects, but as the live feed updating is a quite heavy operation the game performance can be decreased.
+
+	This component requires the DelicodeUnityLibrary plugin to be in the Assets/Plugins folder. If you don't have Unity Pro the Plugins folder is not supported. In this case please see the instructions on http://www.ni-mate.com/faq/#LiveFeedsInUnity to try out this functionality.
+
+	The following options are shown in the inspector for this component:
+		Show feed 2 - If you have a full NI mate licence you can choose between the first and second live feed.
+
+		Size & position - These options are only shown if the component is added to a camera object. These control the size and the position of the overlay image.
