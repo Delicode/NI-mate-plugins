@@ -16,8 +16,8 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-# Delicode NI mate Cinema 4D Plugin v2.0
-# http://www.ni-mate.com
+# Delicode NI mate Cinema 4D Plugin v2.1
+# http://ni-mate.com
 
 import c4d
 from c4d import gui,plugins
@@ -97,10 +97,11 @@ UI_TAB_CONNECT_HEADER = UI_TAB_CONNECT+1
 UI_TAB_CONNECT_HEADER_TEXT = "Connect the captured objects to other objects:"
 UI_TAB_CONNECT_HEADER_NO_CHILDREN = "The selected root doesn't have any children to connect!"
 UI_TAB_CONNECT_HEADER_NO_ROOT = "You must select a root object above to connect objects!"
-UI_ROOT_JOINTS_LIST = UI_TAB_CONNECT+2
-UI_TAB_CONNECT_ENABLE_HELP = UI_TAB_CONNECT+3
-UI_TAB_CONNECT_HELP_GROUP = UI_TAB_CONNECT+4
-UI_TAB_CONNECT_HELP = UI_TAB_CONNECT+5
+UI_SCROLLAREA = UI_TAB_CONNECT+2
+UI_ROOT_JOINTS_LIST = UI_TAB_CONNECT+3
+UI_TAB_CONNECT_ENABLE_HELP = UI_TAB_CONNECT+4
+UI_TAB_CONNECT_HELP_GROUP = UI_TAB_CONNECT+5
+UI_TAB_CONNECT_HELP = UI_TAB_CONNECT+6
 UI_CONNECT_HELP_TEXT = """Connect the received objects to other objects, for example the joints of a character:
 1. Choose the objects to be connected to the selector boxes.
 2. Use \"Connect all\" to create the needed PSR constraints for the objects or alternatively use the checkboxes next to the joint names to connect/disconnect the objects individually.
@@ -419,7 +420,37 @@ class NImateReceiver():
                 
             self.location_dict = {}
             self.rotation_dict = {}
+        else:
+            for joint_name, loc in self.location_dict.items():
+                joint = self.root_object.GetDown()
 
+                while joint is not None and joint.GetName() != joint_name:
+                    joint = joint.GetNext()
+
+                if joint is None:
+                    joint = add_null(joint_name, self.root_object)
+
+                pos = c4d.Vector(100*loc[0], 100*loc[1], 100*loc[2])
+                joint.SetAbsPos(pos)
+
+                if self.record and self.time_s > preroll:
+                    self.setLocationKey(joint, pos)
+
+            for joint_name, quat in self.rotation_dict.items():
+                joint = self.root_object.GetDown()
+
+                while joint is not None and joint.GetName() != joint_name:
+                    joint = joint.GetNext()
+
+                if joint is None:
+                    joint = add_null(joint_name, self.root_object)
+
+                hpb = c4d.utils.MatrixToHPB(self.quatToMat(quat))
+                joint.SetAbsRot(c4d.Vector(hpb))
+
+            if self.record and self.time_s > preroll:
+                self.setRotationKey(joint, hpb)
+        
         c4d.EventAdd()
 
     def ensure_default_pose(self):
@@ -799,11 +830,13 @@ class NImateDialog(c4d.gui.GeDialog):
         self.AddStaticText(UI_TAB_CONNECT_HEADER,c4d.BFH_SCALEFIT|c4d.BFV_FIT,0,0,UI_TAB_CONNECT_HEADER_NO_ROOT,0)
         self.AddSeparatorH(0, c4d.BFH_SCALEFIT)
 
-        self.GroupBegin(UI_ROOT_JOINTS_LIST,c4d.BFV_TOP,3,0,"Joints")
+        self.ScrollGroupBegin(UI_SCROLLAREA, c4d.BFH_SCALEFIT|c4d.BFV_FIT, c4d.SCROLLGROUP_VERT, 150, 300)
+        self.GroupBegin(UI_ROOT_JOINTS_LIST,c4d.BFH_SCALEFIT|c4d.BFV_FIT,3,0,"Joints")
         self.GroupBorder(c4d.BORDER_GROUP_TOP)
         self.GroupBorderSpace(10,10,10,10)
-        self.AddStaticText(UI_TAB_CONNECT+1,c4d.BFV_TOP,0,0,"",0)
-        self.GroupEnd()
+        self.AddStaticText(UI_TAB_CONNECT+1,c4d.BFH_SCALEFIT|c4d.BFV_FIT,0,0,"",0)
+        self.GroupEnd();
+        self.GroupEnd();
 
         self.GroupBegin(UI_TAB_CONNECT+10, c4d.BFH_SCALEFIT|c4d.BFV_FIT, 2, 0, "")
         self.connectButton = self.AddButton(UI_CONNECT,c4d.BFH_SCALE|c4d.BFV_SCALE, 150, 15, "Connect all")
