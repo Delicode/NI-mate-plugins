@@ -799,10 +799,10 @@ class NImateDialog(c4d.gui.GeDialog):
         self.AddStaticText(UI_TAB_CONNECT_HEADER,c4d.BFH_SCALEFIT|c4d.BFV_FIT,0,0,UI_TAB_CONNECT_HEADER_NO_ROOT,0)
         self.AddSeparatorH(0, c4d.BFH_SCALEFIT)
 
-        self.GroupBegin(UI_ROOT_JOINTS_LIST,c4d.BFH_SCALEFIT|c4d.BFV_FIT,3,0,"Joints")
+        self.GroupBegin(UI_ROOT_JOINTS_LIST,c4d.BFV_TOP,3,0,"Joints")
         self.GroupBorder(c4d.BORDER_GROUP_TOP)
         self.GroupBorderSpace(10,10,10,10)
-        self.AddStaticText(UI_TAB_CONNECT+1,c4d.BFH_SCALEFIT|c4d.BFV_FIT,0,0,"",0)
+        self.AddStaticText(UI_TAB_CONNECT+1,c4d.BFV_TOP,0,0,"",0)
         self.GroupEnd()
 
         self.GroupBegin(UI_TAB_CONNECT+10, c4d.BFH_SCALEFIT|c4d.BFV_FIT, 2, 0, "")
