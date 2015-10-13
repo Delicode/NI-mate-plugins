@@ -296,7 +296,7 @@ class NImateReceiver():
                 elif len(decoded) == 9: #location & quaternion
                     if sync:
                         self.next_location_dict[ob_name] = Vector([decoded[2], -decoded[4], decoded[3]])
-                        self.next_rotation_dict[ob_name] = Quaternion((-decoded[2], decoded[3], -decoded[5], decoded[4]))
+                        self.next_rotation_dict[ob_name] = Quaternion((-decoded[5], decoded[6], -decoded[8], decoded[7]))
                     else:
                         self.location_dict[ob_name] = Vector([decoded[2], -decoded[4], decoded[3]])
                         self.rotation_dict[ob_name] = Quaternion((-decoded[5], decoded[6], -decoded[8], decoded[7]))
