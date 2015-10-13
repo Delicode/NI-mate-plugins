@@ -20,7 +20,7 @@ bl_info = {
     "name": "Delicode NI mate Tools",
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
-    "version": (1, 3),
+    "version": (1, 4),
     "blender": (2, 75, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
