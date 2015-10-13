@@ -19,9 +19,9 @@
 bl_info = {
     "name": "Delicode NI mate Tools",
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
-    "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)",
-    "version": (1, 2),
-    "blender": (2, 65, 0),
+    "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
+    "version": (1, 3),
+    "blender": (2, 75, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
     'wiki_url': '',
@@ -254,7 +254,7 @@ class NImateReceiver():
                 sync = True
             
             receive = False
-        
+            
         trash = data
         while(receive):
             data = trash
@@ -312,15 +312,18 @@ class NImateReceiver():
         if sync:            
             for key, value in apply_location_dict.items():
                 set_location_func(objects, key, value, self.original_locations)
-    
-                
+            
             for key, value in apply_rotation_dict.items():
                 set_rotation_func(objects, key, value, self.original_rotations)
-                
+            
             self.location_dict = {}
             self.rotation_dict = {}
-
-
+        else:
+            for key, value in self.location_dict.items():
+                set_location_func(objects, key, value, self.location_dict)
+                
+            for key, value in self.rotation_dict.items():
+                set_rotation_func(objects, key, value, self.rotation_dict)
 
     def __init__(self, UDP_PORT, QUIT_PORT):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
