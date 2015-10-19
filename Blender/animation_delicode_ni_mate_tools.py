@@ -20,7 +20,7 @@ bl_info = {
     "name": "Delicode NI mate Tools",
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
-    "version": (1, 3),
+    "version": (2, 2),
     "blender": (2, 75, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
@@ -296,7 +296,7 @@ class NImateReceiver():
                 elif len(decoded) == 9: #location & quaternion
                     if sync:
                         self.next_location_dict[ob_name] = Vector([decoded[2], -decoded[4], decoded[3]])
-                        self.next_rotation_dict[ob_name] = Quaternion((-decoded[2], decoded[3], -decoded[5], decoded[4]))
+                        self.next_rotation_dict[ob_name] = Quaternion((-decoded[5], decoded[6], -decoded[8], decoded[7]))
                     else:
                         self.location_dict[ob_name] = Vector([decoded[2], -decoded[4], decoded[3]])
                         self.rotation_dict[ob_name] = Quaternion((-decoded[5], decoded[6], -decoded[8], decoded[7]))
