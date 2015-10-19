@@ -264,7 +264,7 @@ class NImateReceiver():
             
             try:
                 if len(decoded) == 3: #one value
-                    if ob_name == "NI_mate_sync":
+                    if ob_name == "/NI_mate_sync":
                         if sync:
                             self.next_sync = True
                         else:
