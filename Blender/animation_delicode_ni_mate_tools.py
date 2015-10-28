@@ -20,7 +20,7 @@ bl_info = {
     "name": "Delicode NI mate Tools",
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
-    "version": (2, 2),
+    "version": (2, 3),
     "blender": (2, 75, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
@@ -263,8 +263,32 @@ class NImateReceiver():
             ob_name = str(decoded[0], "utf-8")
             
             try:
-                if len(decoded) == 3: #one value
-                    if ob_name == "/NI_mate_sync":
+                if (ob_name.startswith("@")):
+                    # Something to play with:
+                    # values that begin with a @ are python expressions,
+                    # and there is one parameter after the address in the OSC message
+                    # if you set something such as
+                    # bpy.data.objects"['Cube']".location.x= {V}
+                    # into a OSC path for, say, a face shape smile controller you can move an object by smiling
+                    to_evaluate = ob_name[1:]
+                    to_evaluate += str(decoded[2])
+                    try:
+                        print(exec(to_evaluate))
+                    except Exception as e:
+                        print(to_evaluate)
+                        print(str(e))
+                elif (ob_name.startswith("?")):
+                    # This one could be used for something such as mapping "thumbs up" gesture for rendering
+                    # Add the following path to a gesture controller OSC path
+                    # ?bpy.ops.render.render()
+                    to_evaluate = ob_name[1:]
+                    try:
+                        print(exec(to_evaluate))
+                    except Exception as e:
+                        print(to_evaluate)
+                        print(str(e))
+                elif len(decoded) == 3: #one value
+                    if ob_name == "NI_mate_sync":
                         if sync:
                             self.next_sync = True
                         else:
