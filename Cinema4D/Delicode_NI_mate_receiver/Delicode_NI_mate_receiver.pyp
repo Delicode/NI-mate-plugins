@@ -16,8 +16,8 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-# Delicode NI mate Cinema 4D Plugin v2.1
-# http://ni-mate.com
+# Delicode NI mate Cinema 4D Plugin v2.3
+# https://ni-mate.com
 
 import c4d
 from c4d import gui,plugins
