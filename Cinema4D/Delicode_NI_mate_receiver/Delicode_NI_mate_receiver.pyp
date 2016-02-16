@@ -415,8 +415,8 @@ class NImateReceiver():
                 hpb = c4d.utils.MatrixToHPB(self.quatToMat(quat))
                 joint.SetAbsRot(c4d.Vector(hpb))
 
-            if self.record and self.time_s > preroll:
-                self.setRotationKey(joint, hpb)
+                if self.record and self.time_s > preroll:
+                    self.setRotationKey(joint, hpb)
                 
             self.location_dict = {}
             self.rotation_dict = {}
@@ -448,8 +448,8 @@ class NImateReceiver():
                 hpb = c4d.utils.MatrixToHPB(self.quatToMat(quat))
                 joint.SetAbsRot(c4d.Vector(hpb))
 
-            if self.record and self.time_s > preroll:
-                self.setRotationKey(joint, hpb)
+                if self.record and self.time_s > preroll:
+                    self.setRotationKey(joint, hpb)
         
         c4d.EventAdd()
 
@@ -1298,3 +1298,4 @@ if __name__=='__main__':
     fn = os.path.join(dir, "res", "Icon.tif")
     bmp.InitWith(fn)
     result = plugins.RegisterCommandPlugin(PLUGIN_ID, "NI mate receiver 2.0", 0, bmp, "Delicode NI mate receiver 2.0", NImate2())
+    
