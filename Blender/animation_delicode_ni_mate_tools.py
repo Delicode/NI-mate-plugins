@@ -427,8 +427,8 @@ class DelicodeNImate(bpy.types.Operator):
         __class__.enabled = True
         global add_rotations
         global reset_locrot
-        # add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
-        # reset_locrot = bpy.context.scene.delicode_ni_mate_reset
+        add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
+        reset_locrot = bpy.context.scene.delicode_ni_mate_reset
         self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
         
         context.window_manager.modal_handler_add(self)
@@ -465,16 +465,18 @@ class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
     bl_category = "NI mate"
     
     def draw(self, context):
+        scene = context.scene
+
         layout = self.layout
         layout.use_property_split = True
+        col = layout.column()
+
+        col.enabled = not DelicodeNImate.enabled
         
-        scene = context.scene
-        view = scene.view_settings
-        
-        layout.prop(scene, "delicode_ni_mate_port", text="Port:")
-        layout.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
-        layout.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
-        layout.prop(scene, "delicode_ni_mate_reset", text="reset")
+        col.prop(scene, "delicode_ni_mate_port", text="Port:")
+        col.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
+        col.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
+        col.prop(scene, "delicode_ni_mate_reset", text="reset")
         
         if(DelicodeNImate.enabled):
             layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
