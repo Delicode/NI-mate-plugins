@@ -21,7 +21,7 @@ bl_info = {
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
     "version": (2, 3),
-    "blender": (2, 75, 0),
+    "blender": (2, 8, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
     'wiki_url': '',
@@ -38,6 +38,15 @@ import socket
 import subprocess, os
 import mmap
 import time
+
+classes = (
+    DelicodeNImateFeedPlaneCreate,
+    DelicodeNImateFeedLogicCreate,
+    DelicodeNImateReceiverLogicCreate,
+    DelicodeNImate,
+    DelicodeNImateStop,
+    VIEW3D_PT_DelicodeNImatePanel
+)
 
 try:
     import bge
@@ -866,13 +875,18 @@ if not GE:
         del scene.delicode_ni_mate_feed_image
                 
     def register():
-            
-        init_properties()
-        bpy.utils.register_module(__name__)
+        from bpy.utils import register_class
+        for cls in classes:
+            register_class(cls)
+        ## init_properties()
+        ## bpy.utils.register_module(__name__)
 
     def unregister():
-        bpy.utils.unregister_module(__name__)
-        clear_properties()
+        from bpy.utils import unregister_class
+        for cls in reversed(classes):
+            unregister_class(cls)
+        ## bpy.utils.unregister_module(__name__)
+        ## clear_properties()
         
     if __name__ == "__main__":
         register()
