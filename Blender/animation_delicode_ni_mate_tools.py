@@ -39,15 +39,6 @@ import subprocess, os
 import mmap
 import time
 
-classes = (
-    DelicodeNImateFeedPlaneCreate,
-    DelicodeNImateFeedLogicCreate,
-    DelicodeNImateReceiverLogicCreate,
-    DelicodeNImate,
-    DelicodeNImateStop,
-    VIEW3D_PT_DelicodeNImatePanel
-)
-
 try:
     import bge
     GE = True
@@ -873,7 +864,16 @@ if not GE:
         del scene.delicode_ni_mate_create
 
         del scene.delicode_ni_mate_feed_image
-                
+    
+    classes = (
+        DelicodeNImateFeedPlaneCreate,
+        DelicodeNImateFeedLogicCreate,
+        DelicodeNImateReceiverLogicCreate,
+        DelicodeNImate,
+        DelicodeNImateStop,
+        VIEW3D_PT_DelicodeNImatePanel
+    )
+    
     def register():
         from bpy.utils import register_class
         for cls in classes:
