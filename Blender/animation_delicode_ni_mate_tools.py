@@ -21,7 +21,7 @@ bl_info = {
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
     "version": (2, 3),
-    "blender": (2, 8, 0),
+    "blender": (2, 80, 0),
     "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
     "category": "Animation",
     'wiki_url': '',
@@ -668,12 +668,12 @@ if not GE:
             __class__.enabled = True
             global add_rotations
             global reset_locrot
-            add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
-            reset_locrot = bpy.context.scene.delicode_ni_mate_reset
-            self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
+            # add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
+            # reset_locrot = bpy.context.scene.delicode_ni_mate_reset
+            self.receiver = NImateReceiver(7000, None)
             
             context.window_manager.modal_handler_add(self)
-            self.timer = context.window_manager.event_timer_add(1/context.scene.render.fps, context.window)
+            self.timer = context.window_manager.event_timer_add(1/context.scene.render.fps, window=bpy.context.window)
             return {'RUNNING_MODAL'}
         
         def cancel(self, context):
@@ -701,33 +701,31 @@ if not GE:
         
     class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
         bl_space_type = "VIEW_3D"
-        bl_region_type = "TOOLS"
+        bl_region_type = "UI"
         bl_label = "NI mate Receiver"
         bl_category = "NI mate"
         
         def draw(self, context):
             layout = self.layout
+
+            col = layout.column(align=True)
+            col.enabled = not DelicodeNImate.enabled
             
             scene = context.scene
             
-            col = layout.column()
-            col.enabled = not DelicodeNImate.enabled
-            col.prop(scene, "delicode_ni_mate_port")
-            col.label("Create:")
-            row = col.row()
-            row.prop(scene, "delicode_ni_mate_create", expand=True);
-            row = col.row()
-            row.prop(scene, "delicode_ni_mate_add_rotations")
-            row.prop(scene, "delicode_ni_mate_reset")
+            layout.prop(scene, "wm.delicode_ni_mate_port", text="Port:")
+            layout.prop(scene, "wm.delicode_ni_mate_create", text="Create:", expand=True);
+            ## row.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
+            ## row.prop(scene, "delicode_ni_mate_reset", text="reset")
             
             if(DelicodeNImate.enabled):
                 layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
             else:
-                layout.operator("wm.delicode_ni_mate_start", text="Start", icon='POSE_DATA')
+                layout.operator("wm.delicode_ni_mate_start", text="Start", icon='MESH_CUBE')
 
     class VIEW3D_PT_DelicodeNImateGEPanel(bpy.types.Panel):
         bl_space_type = "VIEW_3D"
-        bl_region_type = "TOOLS"
+        bl_region_type = "UI"
         bl_label = "NI mate Game Engine"
         bl_category = "NI mate"
         
@@ -845,7 +843,7 @@ if not GE:
 
         scene.delicode_ni_mate_GE_add_rotations = bpy.props.BoolProperty(
             name="Add Rotations",
-            description="Add received rotation data to original rotations")
+            eescription="Add received rotation data to original rotations")
             
     def clear_properties():
         scene = bpy.types.Scene
@@ -873,26 +871,9 @@ if not GE:
         DelicodeNImateStop,
         VIEW3D_PT_DelicodeNImatePanel
     )
-    
-    def register():
-        from bpy.utils import register_class
-        for cls in classes:
-            register_class(cls)
-        ## init_properties()
-        ## bpy.utils.register_module(__name__)
 
-    def unregister():
-        from bpy.utils import unregister_class
-        for cls in reversed(classes):
-            unregister_class(cls)
-        ## bpy.utils.unregister_module(__name__)
-        ## clear_properties()
+    register, unregister = bpy.utils.register_classes_factory(classes)
         
-    if __name__ == "__main__":
-        register()
-
-
-
 def setupGE(own):
     import bge
     import sys
