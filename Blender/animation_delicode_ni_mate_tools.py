@@ -60,7 +60,7 @@ def set_location(objects, ob_name, vec, originals):
         ob_type = bpy.context.scene.delicode_ni_mate_create
         if(ob_type == 'EMPTIES'):
             bpy.ops.object.add()
-            bpy.context.object.empty_draw_size = 0.2
+            bpy.context.object.empty_display_size = 0.2
         elif(ob_type == 'SPHERES'):
             bpy.ops.mesh.primitive_ico_sphere_add()
         elif(ob_type == 'CUBES'):
@@ -466,16 +466,15 @@ class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-
-        col = layout.column(align=True)
-        col.enabled = not DelicodeNImate.enabled
+        layout.use_property_split = True
         
         scene = context.scene
+        view = scene.view_settings
         
-        layout.prop(scene, "bpy.context.scene.delicode_ni_mate_port", text="Port:")
-        layout.prop(scene, "bpy.context.scene.delicode_ni_mate_create", text="Create:", expand=True);
-        # row.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
-        # row.prop(scene, "delicode_ni_mate_reset", text="reset")
+        layout.prop(scene, "delicode_ni_mate_port", text="Port:")
+        layout.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
+        layout.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
+        layout.prop(scene, "delicode_ni_mate_reset", text="reset")
         
         if(DelicodeNImate.enabled):
             layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
