@@ -21,8 +21,8 @@ bl_info = {
     "description": "Receives OSC and live feed data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
     "version": (2, 3),
-    "blender": (2, 75, 0),
-    "location": "View3D > Toolbar > NI mate Receiver & Game Engine",
+    "blender": (2, 80, 0),
+    "location": "View3D > Toolbar > NI mate Receiver",
     "category": "Animation",
     'wiki_url': '',
     'tracker_url': ''
@@ -39,35 +39,12 @@ import subprocess, os
 import mmap
 import time
 
-try:
-    import bge
-    GE = True
-except ImportError:
-    GE = False
-    import bpy
-    from bpy.props import *
+import bpy
+from bpy.props import *
 
 add_rotations = False
 reset_locrot = False
 
-def set_GE_location(objects, ob_name, vec, originals):
-    ob = objects.get(ob_name)
-    
-    if ob != None:
-        ob.localPosition = 10*vec
-        ob['time'] = -1
-
-def set_GE_rotation(objects, ob_name, quat, originals):
-    ob = objects.get(ob_name)
-    
-    if ob != None:
-        if ob_name not in originals.keys():
-            originals[ob_name] = ob.localOrientation.to_quaternion()
-
-        if add_rotations:
-            ob.localOrientation = quat * originals[ob_name]
-        else:
-            ob.localOrientation = quat
 
 def set_location(objects, ob_name, vec, originals):
     if ob_name in objects.keys():
@@ -83,7 +60,7 @@ def set_location(objects, ob_name, vec, originals):
         ob_type = bpy.context.scene.delicode_ni_mate_create
         if(ob_type == 'EMPTIES'):
             bpy.ops.object.add()
-            bpy.context.object.empty_draw_size = 0.2
+            bpy.context.object.empty_display_size = 0.2
         elif(ob_type == 'SPHERES'):
             bpy.ops.mesh.primitive_ico_sphere_add()
         elif(ob_type == 'CUBES'):
@@ -388,558 +365,195 @@ class NImateReceiver():
                 for key, value in self.original_rotations.items():
                     bpy.data.objects[key].rotation_quaternion = value.copy()
 
-class DelicodeNImateFeed():
-    image_texture = None
-    file_map = None
 
-    def run(self):
-        from bge import texture
-        
-        if self.file_map != None:
-            self.file_map.seek(0)
-
-            w = 0
-            h = 0
-
-            if self.file_map.size() == 640*480*4:
-                w = 640
-                h = 480
-            elif self.file_map.size() == 320*240*4:
-                w = 320
-                h = 240
-            elif self.file_map.size() == 160*120*4:
-                w = 160
-                h = 120
-
-            if w > 0 and h > 0:
-                if self.img_w != w or self.img_h != h:
-                    self.image_texture.source = texture.ImageBuff()
-                    self.image_texture.source.filter = texture.FilterRGBA32()
-
-                buf = self.file_map.read(w*h*4)
-                self.image_texture.source.load(buf, w, h)
-                self.image_texture.refresh(True)
-
-    def __init__(self, image_name, sensor_num, feed_2):
-        import sys
-        import bge
-        from bge import texture
-        import tempfile
-
-        cont = bge.logic.getCurrentController()
-        own = cont.owner
-        img_w = 0
-        img_h = 0
-
-        try:
-            matID = texture.materialID(own, image_name)
-        except:
-            print("Delicode NI mate Tools Error: No texture with name: " + image_name)
-            pass
-        
-        try:
-            self.image_texture = texture.Texture(own, matID)
-
-            filename = "NI_mate_shared_map"
-
-            if feed_2:
-                filename = filename + str(2*(sensor_num-1)+2)
-            else:
-                filename = filename + str(2*(sensor_num-1)+1)
-
-            filename = filename + ".data"
-        
-            file = open(tempfile.gettempdir() + "/" + filename, "rb")
-            if sys.platform.startswith('darwin') or sys.platform.startswith('Linux'):
-                self.file_map = mmap.mmap(file.fileno(), 0, mmap.PROT_READ, mmap.ACCESS_READ)
-            else:
-                self.file_map = mmap.mmap(file.fileno(), 0, None, mmap.ACCESS_READ)
-            file.close()
-
-            self.file_map.seek(0)
-
-            w = 0
-            h = 0
-
-            if self.file_map.size() == 640*480*4:
-                w = 640
-                h = 480
-            elif self.file_map.size() == 320*240*4:
-                w = 320
-                h = 240
-            elif self.file_map.size() == 160*120*4:
-                w = 160
-                h = 120
-
-            if w > 0 and h > 0:
-                buf = self.file_map.read(w*h*4)
-
-                self.image_texture.source = texture.ImageBuff()
-                self.image_texture.source.filter = texture.FilterRGBA32()
-                self.image_texture.source.load(buf, w, h)
-
-                self.img_w = w
-                self.img_h = h
-
-            if feed_2:
-                print("Delicode NI mate Tools replacing " + image_name + " with sensor " + str(sensor_num) + " live feed 2")
-            else:
-                print("Delicode NI mate Tools replacing " + image_name + " with sensor " + str(sensor_num) + " live feed 1")
-        except Exception as e:
-            print("Delicode NI mate Tools Error: Couldn't open NI mate feed " + tempfile.gettempdir() + "/" + filename)
-            print("Reason: %s" % e)
-            self.file_map = None
-            pass
-
-if not GE:
-    class DelicodeNImateFeedPlaneCreate(bpy.types.Operator):
-        bl_idname = "wm.delicode_ni_mate_feed_plane_create"
-        bl_label = "Create feed plane"
-        bl_description = "Create a new plane for NI mate live feed"
-        bl_options = {'REGISTER'}
-        
-        def execute(self, context):
-            bpy.ops.mesh.primitive_plane_add()
-            plane = context.object
-            plane.scale = Vector((4.0/3.0, 1.0, 1.0))
-
-            feed_prefix = "NImateFeed" + str(2*(context.scene.delicode_ni_mate_sensor-1) + (context.scene.delicode_ni_mate_feed == 'FEED2') + 1)
-
-            plane.name = feed_prefix + "_Plane"
-            
-            if (feed_prefix + "_Image") not in bpy.data.images:
-                bpy.ops.image.new(name=feed_prefix + "_Image", width=640, height=480, generated_type='UV_GRID')
-            
-            bpy.ops.mesh.uv_texture_add()
-            plane.data.uv_textures[0].data[0].image = bpy.data.images[feed_prefix + "_Image"]
-
-            mat = bpy.data.materials.new(feed_prefix + "_Material")
-            mat.use_shadeless = True
-            mat.use_transparency = True
-            mat.alpha = 0.0
-
-            tex = bpy.data.textures.new(feed_prefix + "_Texture", type = 'IMAGE')
-            tex.image = bpy.data.images[feed_prefix + "_Image"]
-
-            mtex = mat.texture_slots.add()
-            mtex.texture = tex
-            mtex.texture_coords = 'UV'
-            mtex.use_map_alpha = True
-
-            plane.data.materials.append(mat)
-            
-            bpy.ops.logic.sensor_add(name='SNImateFeed')
-            plane.game.sensors['SNImateFeed'].use_pulse_true_level = True
-            
-            bpy.ops.logic.controller_add(name='CNImateFeed', type='PYTHON')
-            plane.game.controllers['CNImateFeed'].mode = 'MODULE'
-            plane.game.controllers['CNImateFeed'].module = 'animation_delicode_ni_mate_tools.updateFeed'
-            plane.game.sensors['SNImateFeed'].link(plane.game.controllers['CNImateFeed'])
-            
-            bpy.ops.object.game_property_new(type='STRING', name='NImateFeedImage')
-            plane.game.properties['NImateFeedImage'].value = feed_prefix + "_Image"
-            context.scene.delicode_ni_mate_feed_image = feed_prefix + "_Image"
-            
-            bpy.ops.object.game_property_new(type='BOOL', name='NImateUseFeed2')
-            plane.game.properties['NImateUseFeed2'].value = (context.scene.delicode_ni_mate_feed == 'FEED2')
-
-            bpy.ops.object.game_property_new(type='INT', name='NImateUseSensor')
-            plane.game.properties['NImateUseSensor'].value = context.scene.delicode_ni_mate_sensor
-            
-            return {'FINISHED'}
-        
-    class DelicodeNImateFeedLogicCreate(bpy.types.Operator):
-        bl_idname = "wm.delicode_ni_mate_feed_logic_create"
-        bl_label = "Create game logic"
-        bl_description = "Create or update game logic to replace an image with NI mate live feed for the selected object"
-        bl_options = {'REGISTER'}
-
-        @classmethod
-        def poll(self, context):
-            return context.object != None
-        
-        def execute(self, context):
-            ob = context.object
-
-            if 'SNImateFeed' not in ob.game.sensors:
-                bpy.ops.logic.sensor_add(name='SNImateFeed')
-            ob.game.sensors['SNImateFeed'].use_pulse_true_level = True
-            
-            if 'CNImateFeed' not in ob.game.controllers:
-                bpy.ops.logic.controller_add(name='CNImateFeed', type='PYTHON')
-            ob.game.controllers['CNImateFeed'].mode = 'MODULE'
-            ob.game.controllers['CNImateFeed'].module = 'animation_delicode_ni_mate_tools.updateFeed'
-
-            ob.game.sensors['SNImateFeed'].link(ob.game.controllers['CNImateFeed'])
-            
-            if 'NImateFeedImage' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='STRING', name='NImateFeedImage')
-            ob.game.properties['NImateFeedImage'].type = 'STRING'
-            ob.game.properties['NImateFeedImage'].value = context.scene.delicode_ni_mate_feed_image
-            
-            if 'NImateUseFeed2' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='BOOL', name='NImateUseFeed2')
-            ob.game.properties['NImateUseFeed2'].type = 'BOOL'
-            ob.game.properties['NImateUseFeed2'].value = (context.scene.delicode_ni_mate_feed == 'FEED2')
-
-            if 'NImateUseSensor' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='INT', name="NImateUseSensor")
-            ob.game.properties['NImateUseSensor'].type = 'INT'
-            ob.game.properties['NImateUseSensor'].value = context.scene.delicode_ni_mate_sensor;
- 
-            return {'FINISHED'}
-
-    class DelicodeNImateReceiverLogicCreate(bpy.types.Operator):
-        bl_idname = "wm.delicode_ni_mate_receiver_logic_create"
-        bl_label = "Create game logic"
-        bl_description = "Create or update game logic for NI mate receiver for the selected object"
-        bl_options = {'REGISTER'}
-
-        @classmethod
-        def poll(self, context):
-            return context.object != None
-        
-        def execute(self, context):
-            ob = context.object
-
-            if 'SNImateReceiver' not in ob.game.sensors:
-                bpy.ops.logic.sensor_add(name='SNImateReceiver')
-            ob.game.sensors['SNImateReceiver'].use_pulse_true_level = True
-            
-            if 'CNImateReceiver' not in ob.game.controllers:
-                bpy.ops.logic.controller_add(name='CNImateReceiver', type='PYTHON')
-            ob.game.controllers['CNImateReceiver'].mode = 'MODULE'
-            ob.game.controllers['CNImateReceiver'].module = 'animation_delicode_ni_mate_tools.updateGE'
-
-            ob.game.sensors['SNImateReceiver'].link(ob.game.controllers['CNImateReceiver'])
-            
-            if 'NImatePort' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='INT', name='NImatePort')
-            ob.game.properties['NImatePort'].type = 'INT'
-            ob.game.properties['NImatePort'].value = context.scene.delicode_ni_mate_GE_port
-
-            if 'NImateStart' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='BOOL', name='NImateStart')
-            ob.game.properties['NImateStart'].type = 'BOOL'
-            ob.game.properties['NImateStart'].value = context.scene.delicode_ni_mate_start
-
-            if 'NImateProfile' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='STRING', name='NImateProfile')
-            ob.game.properties['NImateProfile'].type = 'STRING'
-            ob.game.properties['NImateProfile'].value = context.scene.delicode_ni_mate_start_profile
-
-            if 'NImateQuit' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='BOOL', name='NImateQuit')
-            ob.game.properties['NImateQuit'].type = 'BOOL'
-            ob.game.properties['NImateQuit'].value = context.scene.delicode_ni_mate_quit
-
-            if 'NImateQuitPort' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='INT', name='NImateQuitPort')
-            ob.game.properties['NImateQuitPort'].type = 'INT'
-            ob.game.properties['NImateQuitPort'].value = context.scene.delicode_ni_mate_GE_quit_port
-
-            if 'NImateAddRotations' not in ob.game.properties:
-                bpy.ops.object.game_property_new(type='BOOL', name='NImateAddRotations')
-            ob.game.properties['NImateAddRotations'].type = 'BOOL'
-            ob.game.properties['NImateAddRotations'].value = context.scene.delicode_ni_mate_GE_add_rotations
- 
-            return {'FINISHED'}
-
-    class DelicodeNImate(bpy.types.Operator):
-        bl_idname = "wm.delicode_ni_mate_start"
-        bl_label = "Delicode NI mate Start"
-        bl_description = "Start receiving data from NI mate"
-        bl_options = {'REGISTER'}
-        
-        enabled = False
-        receiver = None
-        timer = None
-        
-        def modal(self, context, event):
-            if event.type == 'ESC' or not __class__.enabled:
-                return self.cancel(context)
-            
-            if event.type == 'TIMER':
-                self.receiver.run(bpy.data.objects, set_location, set_rotation)
-            
-            return {'PASS_THROUGH'}     
-
-        def execute(self, context):
-            __class__.enabled = True
-            global add_rotations
-            global reset_locrot
-            add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
-            reset_locrot = bpy.context.scene.delicode_ni_mate_reset
-            self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
-            
-            context.window_manager.modal_handler_add(self)
-            self.timer = context.window_manager.event_timer_add(1/context.scene.render.fps, context.window)
-            return {'RUNNING_MODAL'}
-        
-        def cancel(self, context):
-            __class__.enabled = False
-            context.window_manager.event_timer_remove(self.timer)
-            
-            del self.receiver
-            
-            return {'CANCELLED'}
-        
-        @classmethod
-        def disable(cls):
-            if cls.enabled:
-                cls.enabled = False
-                
-    class DelicodeNImateStop(bpy.types.Operator):
-        bl_idname = "wm.delicode_ni_mate_stop"
-        bl_label = "Delicode NI mate Stop"
-        bl_description = "Stop receiving data from NI mate"
-        bl_options = {'REGISTER'}
-        
-        def execute(self, context):
-            DelicodeNImate.disable()
-            return {'FINISHED'}
-        
-    class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
-        bl_space_type = "VIEW_3D"
-        bl_region_type = "TOOLS"
-        bl_label = "NI mate Receiver"
-        bl_category = "NI mate"
-        
-        def draw(self, context):
-            layout = self.layout
-            
-            scene = context.scene
-            
-            col = layout.column()
-            col.enabled = not DelicodeNImate.enabled
-            col.prop(scene, "delicode_ni_mate_port")
-            col.label("Create:")
-            row = col.row()
-            row.prop(scene, "delicode_ni_mate_create", expand=True);
-            row = col.row()
-            row.prop(scene, "delicode_ni_mate_add_rotations")
-            row.prop(scene, "delicode_ni_mate_reset")
-            
-            if(DelicodeNImate.enabled):
-                layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
-            else:
-                layout.operator("wm.delicode_ni_mate_start", text="Start", icon='POSE_DATA')
-
-    class VIEW3D_PT_DelicodeNImateGEPanel(bpy.types.Panel):
-        bl_space_type = "VIEW_3D"
-        bl_region_type = "TOOLS"
-        bl_label = "NI mate Game Engine"
-        bl_category = "NI mate"
-        
-        def draw(self, context):
-            layout = self.layout
-
-            scene = context.scene
-
-            layout.label("Receiver:")
-            layout.prop(scene, "delicode_ni_mate_GE_port")
-
-            row = layout.row(align=True)
-            row.prop(scene, "delicode_ni_mate_start", toggle=True)
-            col = row.column()
-            col.enabled = scene.delicode_ni_mate_start
-            col.prop(scene, "delicode_ni_mate_start_profile", text="")
-
-            row = layout.row(align=True)
-            row.prop(scene, "delicode_ni_mate_quit", toggle=True)
-            col = row.column()
-            col.enabled = scene.delicode_ni_mate_quit
-            col.prop(scene, "delicode_ni_mate_GE_quit_port", text="Port")
-
-            layout.prop(scene, "delicode_ni_mate_GE_add_rotations")
-            col = layout.column()
-            if context.object != None and "CNImateReceiver" in context.object.game.controllers:
-                col.operator("wm.delicode_ni_mate_receiver_logic_create", icon='FILE_REFRESH', text="Update game logic")
-            else:
-                col.operator("wm.delicode_ni_mate_receiver_logic_create", icon='GAME')
-            
-            layout.label("")
-
-            row = layout.row()
-            row.label("Sensor:")
-            row.prop(scene, "delicode_ni_mate_sensor", expand=True)
-
-            row = layout.row()
-            row.label("Live feed:")
-            row.prop(scene, "delicode_ni_mate_feed", expand=True)
-            layout.operator("wm.delicode_ni_mate_feed_plane_create", icon="TEXTURE")
-            layout.prop_search(scene, "delicode_ni_mate_feed_image", bpy.data, "images", text="Or replace")
-            col = layout.column()
-            if context.object != None and "CNImateFeed" in context.object.game.controllers:
-                col.operator("wm.delicode_ni_mate_feed_logic_create", icon='FILE_REFRESH', text="Update game logic")
-            else:
-                col.operator("wm.delicode_ni_mate_feed_logic_create", icon='GAME')
+class DelicodeNImateFeedPlaneCreate(bpy.types.Operator):
+    bl_idname = "wm.delicode_ni_mate_feed_plane_create"
+    bl_label = "Create feed plane"
+    bl_description = "Create a new plane for NI mate live feed"
+    bl_options = {'REGISTER'}
     
-    def init_properties():
-        scene = bpy.types.Scene
+    def execute(self, context):
+        bpy.ops.mesh.primitive_plane_add()
+        plane = context.object
+        plane.scale = Vector((4.0/3.0, 1.0, 1.0))
+
+        feed_prefix = "NImateFeed" + str(2*(context.scene.delicode_ni_mate_sensor-1) + (context.scene.delicode_ni_mate_feed == 'FEED2') + 1)
+
+        plane.name = feed_prefix + "_Plane"
         
-        scene.delicode_ni_mate_port = bpy.props.IntProperty(
-            name="Port",
-            description="Receive OSC on this port, must match the Full Skeleton port in NI mate!",
-            default = 7000,
-            min = 0,
-            max = 65535)
-
-        scene.delicode_ni_mate_GE_port = bpy.props.IntProperty(
-            name="Port",
-            description="Receive OSC on this port, must match the Full Skeleton port in NI mate!",
-            default = 7000,
-            min = 0,
-            max = 65535)
-
-        scene.delicode_ni_mate_GE_quit_port = bpy.props.IntProperty(
-            name="Quit Port",
-            description="NI mate will receive the quit OSC message on this port, must match the OSC input port in NI mate preferences!",
-            default = 7000,
-            min = 0,
-            max = 65535)
-
-        scene.delicode_ni_mate_add_rotations = bpy.props.BoolProperty(
-            name="Add Rotations",
-            description="Add received rotation data to original rotations")
-
-        scene.delicode_ni_mate_reset = bpy.props.BoolProperty(
-            name="Reset",
-            description="Reset original object locations and rotations after receiving is stopped",
-            default=True)
-
-        scene.delicode_ni_mate_create = bpy.props.EnumProperty(
-            name="Create",
-            items = [('NONE', 'Nothing', "Don't create objects based on received data"),
-                    ('EMPTIES', 'Empties', 'Create empties based on received data'),
-                    ('SPHERES', 'Spheres', 'Create spheres based on received data'),
-                    ('CUBES', 'Cubes', 'Create cubes based on received data')])
-
-        scene.delicode_ni_mate_feed_image = bpy.props.StringProperty(
-            name="Image",
-            description="Replace this image with the feed")
+        if (feed_prefix + "_Image") not in bpy.data.images:
+            bpy.ops.image.new(name=feed_prefix + "_Image", width=640, height=480, generated_type='UV_GRID')
         
-        scene.delicode_ni_mate_feed = bpy.props.EnumProperty(
-            items = [('FEED1', '1', 'Feed 1'), ('FEED2', '2', 'Feed 2')],
-            name="Feed")
+        bpy.ops.mesh.uv_texture_add()
+        plane.data.uv_textures[0].data[0].image = bpy.data.images[feed_prefix + "_Image"]
 
-        scene.delicode_ni_mate_sensor = bpy.props.IntProperty(
-            name="Sensor",
-            description="Sensor to take the feed from",
-            default = 1,
-            min = 1,
-            max = 10)
+        mat = bpy.data.materials.new(feed_prefix + "_Material")
+        mat.use_shadeless = True
+        mat.use_transparency = True
+        mat.alpha = 0.0
 
-        scene.delicode_ni_mate_start = bpy.props.BoolProperty(
-            name="Start NI mate",
-            description="Start NI mate when the game engine is started")
+        tex = bpy.data.textures.new(feed_prefix + "_Texture", type = 'IMAGE')
+        tex.image = bpy.data.images[feed_prefix + "_Image"]
 
-        scene.delicode_ni_mate_start_profile = bpy.props.StringProperty(
-            name="NI mate profile",
-            description="Path to the profile file used to start NI mate")
+        mtex = mat.texture_slots.add()
+        mtex.texture = tex
+        mtex.texture_coords = 'UV'
+        mtex.use_map_alpha = True
 
-        scene.delicode_ni_mate_quit = bpy.props.BoolProperty(
-            name="Quit NI mate",
-            description="Quit NI mate when the game engine quits"
-            )
-
-        scene.delicode_ni_mate_GE_add_rotations = bpy.props.BoolProperty(
-            name="Add Rotations",
-            description="Add received rotation data to original rotations")
-            
-    def clear_properties():
-        scene = bpy.types.Scene
+        plane.data.materials.append(mat)
         
-        del scene.delicode_ni_mate_port
-        del scene.delicode_ni_mate_GE_port
-        del scene.delicode_ni_mate_GE_quit_port
-
-        del scene.delicode_ni_mate_quit
-        del scene.delicode_ni_mate_start
-
-        del scene.delicode_ni_mate_add_rotations
-        del scene.delicode_ni_mate_reset
-        
-        del scene.delicode_ni_mate_GE_add_rotations
-        del scene.delicode_ni_mate_create
-
-        del scene.delicode_ni_mate_feed_image
-                
-    def register():
-            
-        init_properties()
-        bpy.utils.register_module(__name__)
-
-    def unregister():
-        bpy.utils.unregister_module(__name__)
-        clear_properties()
-        
-    if __name__ == "__main__":
-        register()
-
-
-
-def setupGE(own):
-    import bge
-    import sys
-
-    port = own.get('NImatePort', "")
-    global add_rotations
-    add_rotations = own.get('NImateAddRotations', False)
+        return {'FINISHED'}
     
-    if own.get('NImateStart', False):
-        profile_path = own.get('NImateProfile', "")
-        try:
-            if sys.platform.startswith('darwin') or sys.platform.start('Linux'):
-                subprocess.call(('open', bge.logic.expandPath(profile_path)))
-            elif os.name == 'nt':
-                os.startfile(bge.logic.expandPath(profile_path))
-
-            print("Starting NI mate with profile: " + str(profile_path))
-        except Exception as e:
-            print("Couldn't start NI mate: %s" % e)
-            pass
-
-    quit_port = -1
-
-    if own.get('NImateQuit', False):
-        quit_port = own.get('NImateQuitPort', -1)
-
-    bge.logic.DelicodeNImate = NImateReceiver(port, quit_port)
-
-def updateGE(controller):
-    import bge
-
-    if hasattr(bge.logic, 'DelicodeNImate') == False:
-        setupGE(controller.owner)
-
-    bge.logic.DelicodeNImate.run(bge.logic.getCurrentScene().objects, set_GE_location, set_GE_rotation)
-
-def setupFeed(own):
-    import bge
-
-    sensor_num = own.get('NImateUseSensor', 1)
-    feed_2 = own.get('NImateUseFeed2', False)
-    feed_image = own.get('NImateFeedImage', 0)
+class DelicodeNImate(bpy.types.Operator):
+    bl_idname = "wm.delicode_ni_mate_start"
+    bl_label = "Delicode NI mate Start"
+    bl_description = "Start receiving data from NI mate"
+    bl_options = {'REGISTER'}
     
-    if isinstance(feed_image, str) == False:
-        print("Delicode NI mate Tools Error: no image name defined with String property 'NImateFeedImage'!")
-        return None
+    enabled = False
+    receiver = None
+    timer = None
+    
+    def modal(self, context, event):
+        if event.type == 'ESC' or not __class__.enabled:
+            return self.cancel(context)
+        
+        if event.type == 'TIMER':
+            self.receiver.run(bpy.data.objects, set_location, set_rotation)
+        
+        return {'PASS_THROUGH'}     
 
-    return DelicodeNImateFeed("IM" + feed_image, sensor_num, feed_2)
+    def execute(self, context):
+        __class__.enabled = True
+        global add_rotations
+        global reset_locrot
+        add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
+        reset_locrot = bpy.context.scene.delicode_ni_mate_reset
+        self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
+        
+        context.window_manager.modal_handler_add(self)
+        self.timer = context.window_manager.event_timer_add(1/context.scene.render.fps, window=bpy.context.window)
+        return {'RUNNING_MODAL'}
+    
+    def cancel(self, context):
+        __class__.enabled = False
+        context.window_manager.event_timer_remove(self.timer)
+        
+        del self.receiver
+        
+        return {'CANCELLED'}
+    
+    @classmethod
+    def disable(cls):
+        if cls.enabled:
+            cls.enabled = False
+            
+class DelicodeNImateStop(bpy.types.Operator):
+    bl_idname = "wm.delicode_ni_mate_stop"
+    bl_label = "Delicode NI mate Stop"
+    bl_description = "Stop receiving data from NI mate"
+    bl_options = {'REGISTER'}
+    
+    def execute(self, context):
+        DelicodeNImate.disable()
+        return {'FINISHED'}
+    
+class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_label = "NI mate Receiver"
+    bl_category = "NI mate"
+    
+    def draw(self, context):
+        scene = context.scene
 
-def updateFeed(controller):
-    import bge
+        layout = self.layout
+        layout.use_property_split = True
+        col = layout.column()
 
-    own = controller.owner
+        col.enabled = not DelicodeNImate.enabled
+        
+        col.prop(scene, "delicode_ni_mate_port", text="Port:")
+        col.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
+        col.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
+        col.prop(scene, "delicode_ni_mate_reset", text="reset")
+        
+        if(DelicodeNImate.enabled):
+            layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
+        else:
+            layout.operator("wm.delicode_ni_mate_start", text="Start", icon='ARMATURE_DATA')
 
-    sensor_num = own.get('NImateUseSensor', 0)
-    feed_2 = own.get('NImateUseFeed2', False)
+def init_properties():
+    scene = bpy.types.Scene
+    
+    scene.delicode_ni_mate_port = bpy.props.IntProperty(
+        name="Port",
+        description="Receive OSC on this port, must match the Full Skeleton port in NI mate!",
+        default = 7000,
+        min = 0,
+        max = 65535)
 
-    if not hasattr(bge.logic, 'DelicodeNImateFeeds'):
-        bge.logic.DelicodeNImateFeeds = {}
+    scene.delicode_ni_mate_add_rotations = bpy.props.BoolProperty(
+        name="Add Rotations",
+        description="Add received rotation data to original rotations")
 
-    if (str(sensor_num*2 + feed_2) not in bge.logic.DelicodeNImateFeeds.keys()) or (bge.logic.DelicodeNImateFeeds[str(sensor_num*2 + feed_2)] == None):
-        bge.logic.DelicodeNImateFeeds[str(sensor_num*2 + feed_2)] = setupFeed(own)
-    else:
-        bge.logic.DelicodeNImateFeeds[str(sensor_num*2 + feed_2)].run()
+    scene.delicode_ni_mate_reset = bpy.props.BoolProperty(
+        name="Reset",
+        description="Reset original object locations and rotations after receiving is stopped",
+        default=True)
+
+    scene.delicode_ni_mate_create = bpy.props.EnumProperty(
+        name="Create",
+        items = [('NONE', 'Nothing', "Don't create objects based on received data"),
+                ('EMPTIES', 'Empties', 'Create empties based on received data'),
+                ('SPHERES', 'Spheres', 'Create spheres based on received data'),
+                ('CUBES', 'Cubes', 'Create cubes based on received data')])
+
+    scene.delicode_ni_mate_feed_image = bpy.props.StringProperty(
+        name="Image",
+        description="Replace this image with the feed")
+    
+    scene.delicode_ni_mate_feed = bpy.props.EnumProperty(
+        items = [('FEED1', '1', 'Feed 1'), ('FEED2', '2', 'Feed 2')],
+        name="Feed")
+
+    scene.delicode_ni_mate_start_profile = bpy.props.StringProperty(
+        name="NI mate profile",
+        description="Path to the profile file used to start NI mate")
+
+def clear_properties():
+    scene = bpy.types.Scene
+    
+    del scene.delicode_ni_mate_port
+
+    del scene.delicode_ni_mate_quit
+    del scene.delicode_ni_mate_start
+
+    del scene.delicode_ni_mate_add_rotations
+    del scene.delicode_ni_mate_reset
+    
+    del scene.delicode_ni_mate_create
+
+    del scene.delicode_ni_mate_feed_image
+
+classes = (
+    DelicodeNImateFeedPlaneCreate,
+    DelicodeNImate,
+    DelicodeNImateStop,
+    VIEW3D_PT_DelicodeNImatePanel
+)
+
+def register():
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
+    init_properties()
+
+def unregister():
+    from bpy.utils import unregister_class
+    for cls in classes:
+        unregister_class(cls)
+    clear_properties()
+
+if __name__ == "__main__":
+    register()
