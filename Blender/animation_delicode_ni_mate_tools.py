@@ -18,9 +18,9 @@
 
 bl_info = {
     "name": "Delicode NI mate Tools",
-    "description": "Receives OSC and live feed data from the Delicode NI mate program",
+    "description": "Receives OSC data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
-    "version": (2, 3),
+    "version": (3, 0),
     "blender": (2, 80, 0),
     "location": "View3D > Toolbar > NI mate Receiver",
     "category": "Animation",
@@ -36,7 +36,6 @@ import math
 import struct
 import socket
 import subprocess, os
-import mmap
 import time
 
 import bpy
@@ -44,7 +43,6 @@ from bpy.props import *
 
 add_rotations = False
 reset_locrot = False
-
 
 def set_location(objects, ob_name, vec, originals):
     if ob_name in objects.keys():
@@ -81,7 +79,7 @@ def set_rotation(objects, ob_name, quat, originals):
             originals[ob_name] = objects[ob_name].rotation_quaternion.copy()
 
         if add_rotations:
-            objects[ob_name].rotation_quaternion = quat * originals[ob_name]
+            objects[ob_name].rotation_quaternion = quat @ originals[ob_name]
         else:
             objects[ob_name].rotation_quaternion = quat
         
@@ -365,45 +363,6 @@ class NImateReceiver():
                 for key, value in self.original_rotations.items():
                     bpy.data.objects[key].rotation_quaternion = value.copy()
 
-
-class DelicodeNImateFeedPlaneCreate(bpy.types.Operator):
-    bl_idname = "wm.delicode_ni_mate_feed_plane_create"
-    bl_label = "Create feed plane"
-    bl_description = "Create a new plane for NI mate live feed"
-    bl_options = {'REGISTER'}
-    
-    def execute(self, context):
-        bpy.ops.mesh.primitive_plane_add()
-        plane = context.object
-        plane.scale = Vector((4.0/3.0, 1.0, 1.0))
-
-        feed_prefix = "NImateFeed" + str(2*(context.scene.delicode_ni_mate_sensor-1) + (context.scene.delicode_ni_mate_feed == 'FEED2') + 1)
-
-        plane.name = feed_prefix + "_Plane"
-        
-        if (feed_prefix + "_Image") not in bpy.data.images:
-            bpy.ops.image.new(name=feed_prefix + "_Image", width=640, height=480, generated_type='UV_GRID')
-        
-        bpy.ops.mesh.uv_texture_add()
-        plane.data.uv_textures[0].data[0].image = bpy.data.images[feed_prefix + "_Image"]
-
-        mat = bpy.data.materials.new(feed_prefix + "_Material")
-        mat.use_shadeless = True
-        mat.use_transparency = True
-        mat.alpha = 0.0
-
-        tex = bpy.data.textures.new(feed_prefix + "_Texture", type = 'IMAGE')
-        tex.image = bpy.data.images[feed_prefix + "_Image"]
-
-        mtex = mat.texture_slots.add()
-        mtex.texture = tex
-        mtex.texture_coords = 'UV'
-        mtex.use_map_alpha = True
-
-        plane.data.materials.append(mat)
-        
-        return {'FINISHED'}
-    
 class DelicodeNImate(bpy.types.Operator):
     bl_idname = "wm.delicode_ni_mate_start"
     bl_label = "Delicode NI mate Start"
@@ -475,14 +434,14 @@ class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
         
         col.prop(scene, "delicode_ni_mate_port", text="Port:")
         col.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
-        col.prop(scene, "delicode_ni_mate_add_rotations", text="rotations")
-        col.prop(scene, "delicode_ni_mate_reset", text="reset")
+        col.prop(scene, "delicode_ni_mate_add_rotations", text="Add rotations")
+        col.prop(scene, "delicode_ni_mate_reset", text="Reset on stop")
         
         if(DelicodeNImate.enabled):
             layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
         else:
             layout.operator("wm.delicode_ni_mate_start", text="Start", icon='ARMATURE_DATA')
-
+            
 def init_properties():
     scene = bpy.types.Scene
     
@@ -508,15 +467,7 @@ def init_properties():
                 ('EMPTIES', 'Empties', 'Create empties based on received data'),
                 ('SPHERES', 'Spheres', 'Create spheres based on received data'),
                 ('CUBES', 'Cubes', 'Create cubes based on received data')])
-
-    scene.delicode_ni_mate_feed_image = bpy.props.StringProperty(
-        name="Image",
-        description="Replace this image with the feed")
     
-    scene.delicode_ni_mate_feed = bpy.props.EnumProperty(
-        items = [('FEED1', '1', 'Feed 1'), ('FEED2', '2', 'Feed 2')],
-        name="Feed")
-
     scene.delicode_ni_mate_start_profile = bpy.props.StringProperty(
         name="NI mate profile",
         description="Path to the profile file used to start NI mate")
@@ -525,19 +476,13 @@ def clear_properties():
     scene = bpy.types.Scene
     
     del scene.delicode_ni_mate_port
-
     del scene.delicode_ni_mate_quit
     del scene.delicode_ni_mate_start
-
     del scene.delicode_ni_mate_add_rotations
     del scene.delicode_ni_mate_reset
-    
     del scene.delicode_ni_mate_create
 
-    del scene.delicode_ni_mate_feed_image
-
 classes = (
-    DelicodeNImateFeedPlaneCreate,
     DelicodeNImate,
     DelicodeNImateStop,
     VIEW3D_PT_DelicodeNImatePanel
