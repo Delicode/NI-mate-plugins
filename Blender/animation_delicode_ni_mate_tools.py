@@ -476,11 +476,10 @@ def clear_properties():
     scene = bpy.types.Scene
     
     del scene.delicode_ni_mate_port
-    del scene.delicode_ni_mate_quit
-    del scene.delicode_ni_mate_start
     del scene.delicode_ni_mate_add_rotations
     del scene.delicode_ni_mate_reset
     del scene.delicode_ni_mate_create
+    del scene.delicode_ni_mate_start_profile
 
 classes = (
     DelicodeNImate,
