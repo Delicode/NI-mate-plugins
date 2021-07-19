@@ -392,13 +392,16 @@ class DelicodeNImate(bpy.types.Operator):
         add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
         reset_locrot = bpy.context.scene.delicode_ni_mate_reset
 
-        if 'NIMate' not in bpy.data.collections:
-            bpy.context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0]
-            base_collection = bpy.data.collections.new(name="NIMate")
-            bpy.context.scene.collection.children.link(base_collection)
-        else:
-            for ob in bpy.data.collections['NIMate'].objects:
+        collection = bpy.data.collections.get('NIMate')
+
+        if 'NIMate' in bpy.data.collections:
+            for ob in collection.objects:
                 bpy.data.objects.remove(ob, do_unlink=True)
+            bpy.data.collections.remove(collection)
+       
+        bpy.context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0]
+        base_collection = bpy.data.collections.new(name="NIMate")
+        bpy.context.scene.collection.children.link(base_collection)
     
         self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
         
