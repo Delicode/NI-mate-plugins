@@ -68,6 +68,9 @@ def set_location(objects, ob_name, vec, originals):
         ob.name = ob_name
         ob.location = 10*vec
 
+        bpy.data.collections['NIMate'].objects.link(ob)
+        bpy.data.collections[0].objects.unlink(ob)
+
         if(bpy.context.scene.tool_settings.use_keyframe_insert_auto):
             objects[ob_name].keyframe_insert(data_path="location")
 
@@ -388,6 +391,15 @@ class DelicodeNImate(bpy.types.Operator):
         global reset_locrot
         add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
         reset_locrot = bpy.context.scene.delicode_ni_mate_reset
+
+        if 'NIMate' not in bpy.data.collections:
+            bpy.context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0]
+            base_collection = bpy.data.collections.new(name="NIMate")
+            bpy.context.scene.collection.children.link(base_collection)
+        else:
+            for ob in bpy.data.collections['NIMate'].objects:
+                bpy.data.objects.remove(ob, do_unlink=True)
+    
         self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
         
         context.window_manager.modal_handler_add(self)
