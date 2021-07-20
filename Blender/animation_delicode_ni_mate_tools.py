@@ -20,8 +20,8 @@ bl_info = {
     "name": "Delicode NI mate Tools",
     "description": "Receives OSC data from the Delicode NI mate program",
     "author": "Janne Karhu (jahka), Jesse Kaukonen (gekko)", 
-    "version": (3, 0),
-    "blender": (2, 80, 0),
+    "version": (3, 1),
+    "blender": (2, 93, 1),
     "location": "View3D > Toolbar > NI mate Receiver",
     "category": "Animation",
     'wiki_url': '',
@@ -490,7 +490,7 @@ def init_properties():
 
     scene.delicode_ni_mate_lock_collection = bpy.props.BoolProperty(
         name="Lock collection",
-        description="Locks NIMate collection heirarchy on start",
+        description="Don't replace created objects if type is changed",
         default=True)
 
     scene.delicode_ni_mate_create = bpy.props.EnumProperty(
