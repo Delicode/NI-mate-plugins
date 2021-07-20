@@ -467,42 +467,48 @@ def init_properties():
     scene = bpy.types.Scene
 
     scene.delicode_ni_mate_ip = bpy.props.StringProperty(
-        name="Receive OSC on this ip",
-        description="Address",
-        default = "127.0.0.1"
+        name = "Receive OSC on this ip",
+        description = "Address",
+        default = "127.0.0.1",
+        options = set()
         )
     
     scene.delicode_ni_mate_port = bpy.props.IntProperty(
-        name="Port",
-        description="Receive OSC on this port, must match the Full Skeleton port in NI mate!",
+        name = "Port",
+        description = "Receive OSC on this port, must match the Full Skeleton port in NI mate!",
         default = 7000,
         min = 0,
-        max = 65535)
+        max = 65535,
+        options = set())
 
     scene.delicode_ni_mate_add_rotations = bpy.props.BoolProperty(
-        name="Add Rotations",
-        description="Add received rotation data to original rotations")
+        name = "Add Rotations",
+        description = "Add received rotation data to original rotations",
+        options = set())
 
     scene.delicode_ni_mate_reset = bpy.props.BoolProperty(
-        name="Reset",
-        description="Reset original object locations and rotations after receiving is stopped",
-        default=True)
+        name = "Reset",
+        description = "Reset original object locations and rotations after receiving is stopped",
+        default = True,
+        options = set())
 
     scene.delicode_ni_mate_lock_collection = bpy.props.BoolProperty(
-        name="Lock collection",
-        description="Locks NIMate collection heirarchy on start",
-        default=True)
+        name = "Lock collection",
+        description = "Locks NIMate collection heirarchy on start",
+        default = True,
+        options = set())
 
     scene.delicode_ni_mate_create = bpy.props.EnumProperty(
-        name="Create",
+        name = "Create",
         items = [('NONE', 'Nothing', "Don't create objects based on received data"),
                 ('EMPTIES', 'Empties', 'Create empties based on received data'),
                 ('SPHERES', 'Spheres', 'Create spheres based on received data'),
-                ('CUBES', 'Cubes', 'Create cubes based on received data')])
+                ('CUBES', 'Cubes', 'Create cubes based on received data')],
+        options = set())
     
     scene.delicode_ni_mate_start_profile = bpy.props.StringProperty(
-        name="NI mate profile",
-        description="Path to the profile file used to start NI mate")
+        name = "NI mate profile",
+        description = "Path to the profile file used to start NI mate")
 
 def clear_properties():
     scene = bpy.types.Scene
