@@ -331,7 +331,8 @@ class NImateReceiver():
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setblocking(0)
-        self.sock.bind( ("127.0.0.1", UDP_PORT) )
+        ip = bpy.context.scene.delicode_ni_mate_ip
+        self.sock.bind( (ip, UDP_PORT) )
 
         self.quit_port = QUIT_PORT
 
@@ -391,17 +392,20 @@ class DelicodeNImate(bpy.types.Operator):
         global reset_locrot
         add_rotations = bpy.context.scene.delicode_ni_mate_add_rotations
         reset_locrot = bpy.context.scene.delicode_ni_mate_reset
+        lock_collection = bpy.context.scene.delicode_ni_mate_lock_collection
 
         collection = bpy.data.collections.get('NIMate')
 
-        if 'NIMate' in bpy.data.collections:
-            for ob in collection.objects:
-                bpy.data.objects.remove(ob, do_unlink=True)
-            bpy.data.collections.remove(collection)
-       
-        bpy.context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0]
-        base_collection = bpy.data.collections.new(name="NIMate")
-        bpy.context.scene.collection.children.link(base_collection)
+        if not lock_collection:
+            if 'NIMate' in bpy.data.collections:
+                for ob in collection.objects:
+                    bpy.data.objects.remove(ob, do_unlink=True)
+                bpy.data.collections.remove(collection)
+  
+        if 'NIMate' not in bpy.data.collections:
+            bpy.context.view_layer.active_layer_collection = context.view_layer.layer_collection.children[0]
+            base_collection = bpy.data.collections.new(name="NIMate")
+            bpy.context.scene.collection.children.link(base_collection)
     
         self.receiver = NImateReceiver(context.scene.delicode_ni_mate_port, None)
         
@@ -447,10 +451,12 @@ class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
 
         col.enabled = not DelicodeNImate.enabled
         
+        col.prop(scene, "delicode_ni_mate_ip", text="IP:")
         col.prop(scene, "delicode_ni_mate_port", text="Port:")
         col.prop(scene, "delicode_ni_mate_create", text="Create:", expand=True);
         col.prop(scene, "delicode_ni_mate_add_rotations", text="Add rotations")
         col.prop(scene, "delicode_ni_mate_reset", text="Reset on stop")
+        col.prop(scene, "delicode_ni_mate_lock_collection", text="Lock collection")
         
         if(DelicodeNImate.enabled):
             layout.operator("wm.delicode_ni_mate_stop", text="Stop", icon='ARMATURE_DATA')
@@ -459,6 +465,12 @@ class VIEW3D_PT_DelicodeNImatePanel(bpy.types.Panel):
             
 def init_properties():
     scene = bpy.types.Scene
+
+    scene.delicode_ni_mate_ip = bpy.props.StringProperty(
+        name="Receive OSC on this ip",
+        description="Address",
+        default = "127.0.0.1"
+        )
     
     scene.delicode_ni_mate_port = bpy.props.IntProperty(
         name="Port",
@@ -476,6 +488,11 @@ def init_properties():
         description="Reset original object locations and rotations after receiving is stopped",
         default=True)
 
+    scene.delicode_ni_mate_lock_collection = bpy.props.BoolProperty(
+        name="Lock collection",
+        description="Locks NIMate collection heirarchy on start",
+        default=True)
+
     scene.delicode_ni_mate_create = bpy.props.EnumProperty(
         name="Create",
         items = [('NONE', 'Nothing', "Don't create objects based on received data"),
@@ -489,10 +506,12 @@ def init_properties():
 
 def clear_properties():
     scene = bpy.types.Scene
-    
+
+    del scene.delicode_ni_mate_ip
     del scene.delicode_ni_mate_port
     del scene.delicode_ni_mate_add_rotations
     del scene.delicode_ni_mate_reset
+    del scene.delicode_ni_mate_lock_collection
     del scene.delicode_ni_mate_create
     del scene.delicode_ni_mate_start_profile
 
