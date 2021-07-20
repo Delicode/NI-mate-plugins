@@ -470,8 +470,7 @@ def init_properties():
         name = "Receive OSC on this ip",
         description = "Address",
         default = "127.0.0.1",
-        options = set()
-        )
+        options = set())
     
     scene.delicode_ni_mate_port = bpy.props.IntProperty(
         name = "Port",
